@@ -18,10 +18,12 @@ module ReVIEW
 
     def access_catalog
       catalog = []
+      chap_names = []
       if File.exist?('_RVIDX_store.pstore')
         db = PStore.new('_RVIDX_store.pstore')
         db.transaction do
           catalog = db['catalog']
+          chap_names = db['chap_names']
         end
       else
         @book.parts.each do |part|
@@ -29,12 +31,18 @@ module ReVIEW
             catalog.push(part.name)
           end
           part.chapters.each do |chap|
+            chap_names.push(if chap.on_predef? or chap.on_postdef?
+                        chap.title
+                       else
+                         chap.format_number
+                        end)
             catalog.push(chap.name)
           end
         end
         db = PStore.new('_RVIDX_store.pstore')
         db.transaction do
           db['catalog'] = catalog
+          db['chap_names'] = chap_names
         end
       end
       catalog

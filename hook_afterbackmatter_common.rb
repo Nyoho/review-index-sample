@@ -167,14 +167,18 @@ EOT
 
     db = PStore.new('_RVIDX_store.pstore')
     catalog = nil
+    chap_names = nil
     db.transaction do
       catalog = db['catalog']
+      chap_names = db['chap_names']
     end
 
     File.open(srcind) do |fi|
+      chap_name = nil
       fi.each_line do |l|
         l = l.chomp.gsub('◆｛◆', '{').gsub('◆｝◆', '}').gsub('◆backslash◆', '\\').
               gsub(/(\d{3})_(\d{4})/) do
+          chap_name = chap_names[$1.to_i] if chap_names
           "#{catalog[$1.to_i]}.#{@htmlext}#_RVIDX_#{$2}"
         end
 
@@ -198,7 +202,7 @@ EOT
             fw.puts '</li>'
           end
           idx = 1
-          l = make_line(labelp)
+          l = make_line(labelp, chap_name)
         when /■L2■(.+)/ # レベル2索引
           labelp = $1
           if idx == 1
@@ -211,7 +215,7 @@ EOT
             fw.puts '</li>'
           end
           idx = 2
-          l = make_line(labelp)
+          l = make_line(labelp, chap_name)
         when /■L3■(.+)/ # レベル3索引
           labelp = $1
           if idx == 2
@@ -221,7 +225,7 @@ EOT
             fw.puts '</li>'
           end
           idx = 3
-          l = make_line(labelp)
+          l = make_line(labelp, chap_name)
         end
         fw.puts l
       end
@@ -232,10 +236,10 @@ EOT
     end
   end
 
-  def make_line(labelp)
+  def make_line(labelp, chap_name)
     label, nmbls = labelp.split("\t", 2)
     nmbl_array = nmbls.split(/, /).map do |nmbl|
-      %Q(<span class="rv_index_nmbl"><a href="#{nmbl}">#{@linkmark}</a></span>)
+      %Q(<span class="rv_index_nmbl"><a href="#{nmbl}">#{chap_name}</a></span>)
     end
     l = %Q(<li><span class="rv_index_label">#{CGI.escape_html(label)}</span><span class="rv_index_delimiter">...</span>#{nmbl_array.join('<span class="rv_index_nmbl_delimiter">, </span>')})
   end
