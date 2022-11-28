@@ -102,10 +102,12 @@ class HookIndex
   def main(argv, header=true)
     return true unless File.exist?(File.join(__dir__, '_RVIDX_index_raw.txt'))
     setup_index
+    @chap_name_hash = {}
     File.open(File.join(__dir__, '_RVIDX_index_raw.txt')) do |fi|
       File.open(File.join(argv[0], '_RVIDX_index.tex'), 'w') do |fw|
         fi.each_line do |l|
-          label, nmbl = l.chomp.split("\t")
+          label, nmbl, name = l.chomp.split("\t")
+          @chap_name_hash[nmbl] = name
           fw.puts "\\indexentry{#{modify_label(label)}}{#{nmbl}}"
         end
       end
@@ -167,21 +169,23 @@ EOT
 
     db = PStore.new('_RVIDX_store.pstore')
     catalog = nil
-    chap_names = nil
     db.transaction do
       catalog = db['catalog']
-      chap_names = db['chap_names']
     end
 
     File.open(srcind) do |fi|
+      
       chap_name = nil
+      key = nil
       fi.each_line do |l|
         l = l.chomp.gsub('◆｛◆', '{').gsub('◆｝◆', '}').gsub('◆backslash◆', '\\').
               gsub(/(\d{3})_(\d{4})/) do
-          chap_name = chap_names[$1.to_i] if chap_names
+          key = "#{$1}_#{$2}"
           "#{catalog[$1.to_i]}.#{@htmlext}#_RVIDX_#{$2}"
         end
 
+        chap_name = @chap_name_hash[key]
+        
         case l
         when /■H■(.+)/ # 見出し
           label = $1

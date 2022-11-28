@@ -16,14 +16,20 @@ module ReVIEW
       @catalog = access_catalog
     end
 
+    def headline(level, label, caption)
+      super
+      prefix = @sec_counter.prefix(level, @book.config['secnolevel'])
+      @chap_name = prefix || caption
+      @chap_name.gsub!(/　/, '')
+      STDERR.puts "headline = #{level}, #{caption}, #{prefix}"
+    end
+
     def access_catalog
       catalog = []
-      chap_names = []
       if File.exist?('_RVIDX_store.pstore')
         db = PStore.new('_RVIDX_store.pstore')
         db.transaction do
           catalog = db['catalog']
-          chap_names = db['chap_names']
         end
       else
         @book.parts.each do |part|
@@ -31,18 +37,12 @@ module ReVIEW
             catalog.push(part.name)
           end
           part.chapters.each do |chap|
-            chap_names.push(if chap.on_predef? or chap.on_postdef?
-                        chap.title
-                       else
-                         chap.format_number
-                        end)
             catalog.push(chap.name)
           end
         end
         db = PStore.new('_RVIDX_store.pstore')
         db.transaction do
           db['catalog'] = catalog
-          db['chap_names'] = chap_names
         end
       end
       catalog
@@ -51,24 +51,26 @@ module ReVIEW
     def idxlabel(str)
       label = escape_comment(escape(str))
       no = sprintf('%04d', @book.indices.size)
-      @book.indices.push([label, "#{sprintf('%03d', @catalog.index(@chapter.name.sub('.re', '')))}_#{no}"])
+      @book.indices.push([label, "#{sprintf('%03d', @catalog.index(@chapter.name.sub('.re', '')))}_#{no}", @chap_name])
       %Q(<span id="_RVIDX_#{no}" class="rv_index_target"></span>)
     end
 
     def inline_idx(str)
+      STDERR.puts "Wow, now #{@chap_name}! (#{str})"
       %Q(#{idxlabel(str)}#{escape(str)})
     end
 
     def inline_hidx(str)
+      STDERR.puts "Wow now #{@chap_name}! (#{str})"
       idxlabel(str)
     end
 
     def result
       # 無駄めだが最後のコンテンツまで繰り返し上書きすることで最終的なすべての索引を入手できる
       File.open('_RVIDX_index_raw.txt', 'w') do |f|
-        @book.indices.each do |pair|
-          pair[0].gsub!('&lt;&lt;&gt;&gt;', '<<>>') # 子索引
-          f.puts "#{pair[0]}\t#{pair[1]}"
+        @book.indices.each do |trio|
+          trio[0].gsub!('&lt;&lt;&gt;&gt;', '<<>>') # 子索引
+          f.puts "#{trio[0]}\t#{trio[1]}\t#{trio[2]}"
         end
       end
       super
