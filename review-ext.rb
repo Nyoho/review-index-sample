@@ -21,7 +21,6 @@ module ReVIEW
       prefix = @sec_counter.prefix(level, @book.config['secnolevel'])
       @chap_name = prefix || caption
       @chap_name.gsub!(/　/, '')
-      STDERR.puts "headline = #{level}, #{caption}, #{prefix}"
     end
 
     def access_catalog
@@ -56,12 +55,10 @@ module ReVIEW
     end
 
     def inline_idx(str)
-      STDERR.puts "Wow, now #{@chap_name}! (#{str})"
       %Q(#{idxlabel(str)}#{escape(str)})
     end
 
     def inline_hidx(str)
-      STDERR.puts "Wow now #{@chap_name}! (#{str})"
       idxlabel(str)
     end
 

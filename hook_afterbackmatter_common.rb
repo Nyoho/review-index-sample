@@ -107,7 +107,9 @@ class HookIndex
       File.open(File.join(argv[0], '_RVIDX_index.tex'), 'w') do |fw|
         fi.each_line do |l|
           label, nmbl, name = l.chomp.split("\t")
-          @chap_name_hash[nmbl] = name
+          nmbl.gsub(/(\d{3})_(\d{4})/) do
+            @chap_name_hash[$2] = name
+          end
           fw.puts "\\indexentry{#{modify_label(label)}}{#{nmbl}}"
         end
       end
@@ -184,8 +186,6 @@ EOT
           "#{catalog[$1.to_i]}.#{@htmlext}#_RVIDX_#{$2}"
         end
 
-        chap_name = @chap_name_hash[key]
-        
         case l
         when /■H■(.+)/ # 見出し
           label = $1
@@ -206,7 +206,7 @@ EOT
             fw.puts '</li>'
           end
           idx = 1
-          l = make_line(labelp, chap_name)
+          l = make_line(labelp)
         when /■L2■(.+)/ # レベル2索引
           labelp = $1
           if idx == 1
@@ -219,7 +219,7 @@ EOT
             fw.puts '</li>'
           end
           idx = 2
-          l = make_line(labelp, chap_name)
+          l = make_line(labelp)
         when /■L3■(.+)/ # レベル3索引
           labelp = $1
           if idx == 2
@@ -229,7 +229,7 @@ EOT
             fw.puts '</li>'
           end
           idx = 3
-          l = make_line(labelp, chap_name)
+          l = make_line(labelp)
         end
         fw.puts l
       end
@@ -240,9 +240,11 @@ EOT
     end
   end
 
-  def make_line(labelp, chap_name)
+  def make_line(labelp)
     label, nmbls = labelp.split("\t", 2)
     nmbl_array = nmbls.split(/, /).map do |nmbl|
+      nmbl.match(/RVIDX_(\d{4})/)
+      chap_name = @chap_name_hash[$1]
       %Q(<span class="rv_index_nmbl"><a href="#{nmbl}">#{chap_name}</a></span>)
     end
     l = %Q(<li><span class="rv_index_label">#{CGI.escape_html(label)}</span><span class="rv_index_delimiter">...</span>#{nmbl_array.join('<span class="rv_index_nmbl_delimiter">, </span>')})
